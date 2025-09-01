@@ -6,7 +6,7 @@ By combining **Amazon DynamoDB Global Tables**, **AWS Lambda**, **API Gateway**,
 
 ---
 
-## 🚀 Architecture Overview
+## 🚀 Overview
 
 The solution follows **5 major steps**:
 
