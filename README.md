@@ -1,91 +1,76 @@
-# Serverless-Cross-Region-DR-HA-API
+# 🌍 Serverless Cross-Region DR & HA API with AWS
 
-This project demonstrates how to build a **serverless, cross-region Disaster Recovery (DR) and High Availability (HA) API** using AWS services.  
-The architecture ensures that API requests automatically fail over between **us-east-1** and **us-west-2** regions using **CloudFront Origin Groups**.
+This project demonstrates how to build a **disaster recovery (DR)** and **high availability (HA)** architecture using **AWS serverless services**.  
+
+By combining **Amazon DynamoDB Global Tables**, **AWS Lambda**, **API Gateway**, and **CloudFront**, we create a **fault-tolerant, cross-region API** that can automatically fail over between AWS regions in the event of an outage.
 
 ---
 
 ## 🚀 Architecture Overview
 
-- **DynamoDB Global Tables** (active-active replication across `us-east-1` and `us-west-2`).
-- **Lambda Functions** for `Read` and `Write` operations.
-- **API Gateway** exposing `/read` (GET) and `/write` (POST) endpoints.
-- **IAM Roles & Policies** (least privilege for Lambda + DynamoDB).
-- **CloudFront Distribution** with failover origin group:
-  - Primary Origin → API Gateway in `us-east-1`
-  - Failover Origin → API Gateway in `us-west-2` (triggered on 5xx errors).
+The solution follows **5 major steps**:
+
+1. **Step 1: DynamoDB Global Tables**
+   - Created a DynamoDB table with **multi-region replication**.
+   - Verified replication between `us-east-1` (primary) and `us-west-2` (secondary).
+   - **Diagram:** `diagrams/step1-dynamodb.png`  
+   - **Screenshots:** table creation, CLI replication proof.
+
+2. **Step 2: IAM Role for Lambda**
+   - Created an **IAM Role** with policies to allow Lambda to interact with DynamoDB.
+   - Attached `AWSLambdaBasicExecutionRole` and custom DynamoDB access.
+   - **Diagram:** `diagrams/step2-iam-lambda-dynamodb.png`  
+   - **Screenshots:** inline policy, role summary.
+
+3. **Step 3: Lambda Functions**
+   - Built two Lambda functions:
+     - `ReadFunction` → Reads items from DynamoDB.
+     - `WriteFunction` → Writes items into DynamoDB.
+   - Both configured with the IAM role from Step 2.
+   - **Diagram:** `diagrams/step3-lambda-dynamodb.png`  
+   - **Screenshots:** function code, test execution.
+
+4. **Step 4: API Gateway**
+   - Exposed Lambda functions via REST API endpoints:
+     - `/read` → GET → DynamoDB Read Lambda
+     - `/write` → POST → DynamoDB Write Lambda
+   - Enabled **CORS** and tested via API Gateway console.
+   - **Diagram:** `diagrams/step4-api-lambda-dynamodb.png`  
+   - **Screenshots:** method integration, CORS enabled, deployment, invoke test.
+
+5. **Step 5: CloudFront with Failover**
+   - Configured **CloudFront Distribution** with:
+     - Primary origin → API Gateway in `us-east-1`
+     - Failover origin → API Gateway in `us-west-2`
+   - Failover criteria: 500, 502, 503, 504 errors.
+   - **Diagram:** `diagrams/step5-cloudfront-final.png`  
+   - **Screenshots:** distribution creation, origin group, failover setup.
 
 ---
 
-## 📖 Step-by-Step Implementation
+## 📊 Final Architecture
 
-### Step 1 — DynamoDB Global Table
-- Created **Global Table** spanning `us-east-1` and `us-west-2`.
-- Verified replication using CLI (`put-item` + `scan`).
-
-📸 See screenshots in `step1-dynamodb/` and diagram `diagrams/step1-dynamodb.png`.
-
----
-
-### Step 2 — IAM Role & Policies
-- Created **LambdaDynamoDBRole** with:
-  - `AWSLambdaBasicExecutionRole`
-  - Custom inline policy for DynamoDB access.
-
-📸 See `step2-iam/` and diagram `diagrams/step2-iam-lambda-dynamodb.png`.
+The final architecture ensures:
+- **Global availability** (multi-region setup).
+- **Automatic failover** via CloudFront origin groups.
+- **Low-latency access** via CloudFront edge locations.
+Client Request → CloudFront → Origin Group → (API Gateway + Lambda + DynamoDB Global Table)
 
 ---
 
-### Step 3 — Lambda Functions
-- **WriteFunction**: Inserts items into DynamoDB.
-- **ReadFunction**: Scans items from DynamoDB.
+## 🖼️ Visuals
 
-📸 Code + test screenshots in `step3-lambda/`.  
-Diagram: `diagrams/step3-lambda-dynamodb.png`.
+- **Diagrams:** See the `/diagrams` folder for high-level system diagrams.
+- **Screenshots:** Step-by-step proofs available in `/docs/screenshots`.
 
 ---
 
-### Step 4 — API Gateway
-- Created **HighAvailabilityAPI**.
-- Integrated `/read` → `ReadFunction` (GET).
-- Integrated `/write` → `WriteFunction` (POST).
-- Enabled **CORS** for cross-origin requests.
-- Tested using API Gateway test console.
+## 🛠️ Tech Stack
 
-📸 Proof screenshots in `step4-api/`.  
-Diagram: `diagrams/step4-api-lambda-dynamodb.png`.
-
----
-
-### Step 5 — CloudFront Distribution
-- Created **CloudFront distribution** with failover:
-  - `api-east` → API Gateway in `us-east-1`
-  - `api-west` → API Gateway in `us-west-2`
-- Configured **Origin Group (api-failover-group)** with failover on **5xx errors**.
-
-📸 Screenshots in `step5-cloudfront/`.  
-Diagram: `diagrams/step5-cloudfront.png`.
-
----
-
-## ✅ Results & Testing
-
-- API requests go to **us-east-1** by default.  
-- If `us-east-1` fails (Lambda/API Gateway returns 5xx), CloudFront routes traffic to **us-west-2**.  
-- Verified with CloudFront distribution endpoint.
-
----
-
-## 🔑 Key Takeaways
-- Built a **fault-tolerant, highly available serverless API**.
-- Learned to integrate **DynamoDB Global Tables, Lambda, API Gateway, IAM, and CloudFront**.
-- Demonstrated **multi-region DR/HA** pattern on AWS.
-
----
-
-## 📌 Next Steps
-- Add monitoring (CloudWatch, X-Ray).
-- Add API keys or Cognito for authentication.
-- Automate setup with Terraform or AWS CDK.
+- **AWS DynamoDB** – Global Tables for cross-region data replication  
+- **AWS Lambda** – Serverless compute functions  
+- **Amazon API Gateway** – REST API for Lambda integration  
+- **Amazon CloudFront** – CDN + failover routing  
+- **IAM** – Role-based access control  
 
 ---
